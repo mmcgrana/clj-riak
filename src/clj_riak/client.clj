@@ -86,27 +86,37 @@
     (if content-type (.contentType rm content-type))
     rm))
 
+(defn- parse-objects [results]
+  (cond
+    (empty? results)
+      nil
+    (= 1 (count results))
+      (parse-object (first results))
+    :else
+      (map parse-object results)))
+
 (defn get
-  "Returns a seq of Riak object maps.
+  "Returns nil if the key was not found, an object map if an object was found
+   without siblings, or a seq of maps if there are siblings.
    Recognized opts: :r.
    Object keys: :vclock, :value, :content-type, :charset, :content-encoding,
                 :vtag, :last-mod, :last-mod-usecs, :user-meta, :links.
    Link keys: :bucket, :key, :tag."
   [#^RiakClient rc #^String bucket #^String key & [opts]]
-    (map parse-object
-         (if-let [#^Integer r (:r opts)]
-           (.fetch rc bucket key r)
-           (.fetch rc bucket key))))
+    (parse-objects
+      (if-let [#^Integer r (:r opts)]
+        (.fetch rc bucket key r)
+        (.fetch rc bucket key))))
 
 (defn put
   "Store an object in the given bucket at the given key.
-   Returns object maps as for get.
+   Returns nil, a map, or a seq as for get.
    Recobnized obj keys: :value, :content-type
    Recognized opts: :w, :dw, :return-body."
   [#^RiakClient rc #^String bucket #^String key obj & [opts]]
   (let [#^RiakObject ro (unparse-object bucket key obj)
         #^RequestMeta rm (unparse-meta opts)]
-    (map parse-object (.store rc ro rm))))
+    (parse-objects (.store rc ro rm))))
 
 (defn delete
   "Deletes the object from the given bucket at the given key, returning nil.
@@ -128,4 +138,4 @@
   (let [mr-result (.mapReduce rc
                     (if (string? query) query (json/json-str query))
                     (unparse-meta {:content-type "application/json"}))]
-    (map unparse-map-reduce-response mr-result)))
+    (remove nil? (map unparse-map-reduce-response mr-result))))
