@@ -131,7 +131,7 @@
     (.toStringUtf8 content)))
 
 (defn map-reduce
-  "Returns the results of a Javascript map-reduce query.
+  "Returns the results of a JavaScript map-reduce query.
    The query can be expressed as either a JSON string or a Clojure data
    structure corresponding to JSON."
   [#^RiakClient rc query]
