@@ -11,11 +11,7 @@ Clojure bindings to the [Riak](http://www.basho.com/Riak.html) [Protocol Buffers
 
 ## Usage
 
-TODO
-
-## Development
-
-TODO
+For an introduction to the library, see the blog post [Exploring Riak with Clojure](http://mmcgrana.github.com/2010/08/riak-clojure.html)
 
 ## License
 
