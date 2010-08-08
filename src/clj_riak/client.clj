@@ -1,8 +1,10 @@
 (ns clj-riak.client
   "Clojure Riak client."
   (:refer-clojure :exclude (get))
+  (:require [clojure.contrib.json :as json])
   (:import (com.trifork.riak RiakClient RiakObject RiakLink
                              RequestMeta BucketProperties))
+  (:import (com.trifork.riak.mapreduce MapReduceResponse))
   (:import (com.google.protobuf ByteString)))
 
 (defn init
@@ -76,11 +78,12 @@
   (doto (RiakObject. bucket key value)
     (.setContentType content-type)))
 
-(defn unparse-meta [{:keys [w dw return-body]}]
+(defn unparse-meta [{:keys [w dw return-body content-type]}]
   (let [rm (RequestMeta.)]
     (if w (.w rm w))
     (if dw (.dw rm dw))
     (if return-body (.returnBody rm return-body))
+    (if content-type (.contentType rm content-type))
     rm))
 
 (defn get
@@ -112,3 +115,17 @@
   (if-let [#^Integer rw (:rw opts)]
     (.delete rc bucket key rw)
     (.delete rc bucket key)))
+
+(defn- unparse-map-reduce-response [#^MapReduceResponse mr-response]
+  (if-let [content (.getContent mr-response)]
+    (.toStringUtf8 content)))
+
+(defn map-reduce
+  "Returns the results of a Javascript map-reduce query.
+   The query can be expressed as either a JSON string or a Clojure data
+   structure corresponding to JSON."
+  [#^RiakClient rc query]
+  (let [mr-result (.mapReduce rc
+                    (if (string? query) query (json/json-str query))
+                    (unparse-meta {:content-type "application/json"}))]
+    (map unparse-map-reduce-response mr-result)))
