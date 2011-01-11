@@ -57,9 +57,9 @@
     (.setBucketProperties rc (ByteString/copyFromUtf8 bucket) bprops)))
 
 (defn- parse-link [#^RiakLink rl]
-  {:bucket (ByteString/copyFromUtf8 (.getBucket rl))
-   :key (ByteString/copyFromUtf8 (.getKey rl))
-   :tag (ByteString/copyFromUtf8 (.getTag rl))})
+  {:bucket (.toStringUtf8 (.getBucket rl))
+   :key (.toStringUtf8 (.getKey rl))
+   :tag (.toStringUtf8 (.getTag rl))})
 
 (defn- parse-object [#^RiakObject ro]
   {:vclock (.getVclock ro)
@@ -71,12 +71,21 @@
    :last-mod (.getLastModified ro)
    :last-mod-usecs (.getLastModifiedUsec ro)
    :user-meta (into {} (seq (.getUserMeta ro)))
-   :links (map parse-link (.getLinks ro)) })
+   :links (map parse-link (.getLinks ro))})
 
 (defn unparse-object [#^String bucket #^String key
-                      {:keys [#^"[B" value content-type]}]
-  (doto (RiakObject. bucket key value)
-    (.setContentType content-type)))
+                      {:keys [#^"[B" value content-type links]}]
+
+  (let [ro (doto (RiakObject. bucket key value)
+             (.setContentType content-type))
+        
+        _ (if (map? links)
+            (.addLink ro (:tag links) (:bucket links) (:key links))
+
+            (doseq [l links]
+              (.addLink ro (:tag l) (:bucket l) (:key l))))]
+
+    ro))
 
 (defn unparse-meta [{:keys [w dw return-body content-type]}]
   (let [rm (RequestMeta.)]
@@ -111,8 +120,9 @@
 (defn put
   "Store an object in the given bucket at the given key.
    Returns nil, a map, or a seq as for get.
-   Recobnized obj keys: :value, :content-type
-   Recognized opts: :w, :dw, :return-body."
+   Recognized obj keys: :value, :content-type, :links as either {} or [{}..{}]
+   Recognized opts: :w, :dw, :return-body.
+   Link keys: :bucket, :key, :tag."
   [#^RiakClient rc #^String bucket #^String key obj & [opts]]
   (let [#^RiakObject ro (unparse-object bucket key obj)
         #^RequestMeta rm (unparse-meta opts)]
