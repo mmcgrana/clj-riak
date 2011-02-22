@@ -7,7 +7,7 @@ Clojure bindings to the [Riak](http://www.basho.com/Riak.html) [Protocol Buffers
 `clj-riak` is available as a Maven artifact from [Clojars](http://clojars.org/clj-riak):
 
     :dependencies
-      [[clj-riak "0.1.0-SNAPSHOT"] ...]
+      [[org.clojars.ossareh/clj-riak "0.1.0-SNAPSHOT"] ...]
 
 ## Usage
 
